@@ -1,23 +1,17 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import axiosInstance from "../Components/axiosInstance";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCart();
   }, []);
 
   const fetchCart = async () => {
-    setLoading(true);
     try {
-      const response = await axios.get("http://localhost:8000/api/cart-items/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axiosInstance.get("cart-items/");
       setCartItems(response.data);
     } catch (error) {
       console.error("Error fetching cart:", error);
@@ -28,9 +22,7 @@ export default function CartPage() {
 
   const handleRemove = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/cart-items/${id}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axiosInstance.delete(`cart-items/${id}/`);
       setCartItems(cartItems.filter((item) => item.id !== id));
     } catch (error) {
       console.error("Error removing item:", error);
@@ -50,15 +42,13 @@ export default function CartPage() {
         quantity: item.quantity,
       }));
 
-      const response = await axios.post(
-        "http://localhost:8000/api/create-multi-checkout-session/",
-        { items: lineItems },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await axiosInstance.post(
+        "create-multi-checkout-session/",
+        { items: lineItems }
       );
 
-      const sessionId = response.data.sessionId;
-      const stripe = window.Stripe("pk_test_51RTzRuQlgYgZPrnh2q1XFwzgJ9T5GcEiXhhHztDDSlnqw8sjr87scKCMU3Lv7EFbIr0vGYnaWoGMCjWuL55qp7vA00BsM3PJ8Y");
-      await stripe.redirectToCheckout({ sessionId });
+      const stripe = window.Stripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
+      await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
     } catch (error) {
       console.error("Checkout error:", error);
       alert("Failed to start checkout. Please try again.");
@@ -89,12 +79,17 @@ export default function CartPage() {
                 className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b pb-4"
               >
                 <img
-                  src={item.menu_item?.image || "https://via.placeholder.com/100x100?text=No+Image"}
+                  src={
+                    item.menu_item?.image ||
+                    "https://via.placeholder.com/100x100?text=No+Image"
+                  }
                   alt={item.menu_item.title}
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-lg font-semibold">{item.menu_item.title}</h2>
+                  <h2 className="text-lg font-semibold">
+                    {item.menu_item.title}
+                  </h2>
                   <p className="text-gray-500">Quantity: {item.quantity}</p>
                 </div>
                 <div className="text-right">

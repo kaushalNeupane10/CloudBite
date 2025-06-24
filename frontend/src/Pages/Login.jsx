@@ -1,14 +1,14 @@
-// Pages/Login.jsx
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated } from "../utils/auth";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import axiosInstance from "../Components/axiosInstance";
 
 function Login() {
   const navigate = useNavigate();
-
   const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -16,28 +16,30 @@ function Login() {
   });
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      navigate("/"); // Already logged in
-    }
-  }, []);
+    if (isAuthenticated()) navigate("/");
+  }, [navigate]);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  const togglePassword = () => setShowPassword(!showPassword);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       if (isLogin) {
-        const res = await axios.post("http://localhost:8000/api/token/", {
+        const res = await axiosInstance.post("token/", {
           username: formData.username,
           password: formData.password,
         });
 
         localStorage.setItem("token", res.data.access);
+        localStorage.setItem("refreshToken", res.data.refresh);
         toast.success("Logged in!");
         navigate("/");
       } else {
-        await axios.post("http://localhost:8000/api/register/", {
+        await axiosInstance.post("register/", {
           username: formData.username,
           email: formData.email,
           password: formData.password,
@@ -59,6 +61,7 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 px-4">
       <div className="bg-gray-900 shadow-2xl rounded-2xl flex flex-col md:flex-row w-full max-w-4xl overflow-hidden">
+        {/* Left Panel */}
         <div className="hidden md:flex flex-col justify-center items-center bg-red-500 text-white p-10 w-full md:w-1/2">
           <h2 className="text-4xl font-bold mb-4">
             {isLogin ? "Welcome Back" : "Join Us Today"}
@@ -68,6 +71,7 @@ function Login() {
           </p>
         </div>
 
+        {/* Right Panel */}
         <div className="p-10 w-full md:w-1/2 bg-gray-800 text-white">
           <h2 className="text-2xl font-bold mb-6 text-center">
             {isLogin ? "Login" : "Sign Up"}
@@ -96,15 +100,29 @@ function Login() {
               />
             )}
 
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400"
-            />
+            {/* Password Field with Show/Hide */}
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 bg-gray-700 rounded-lg pr-12 focus:outline-none focus:ring-2 focus:ring-red-400"
+              />
+              <button
+                type="button"
+                onClick={togglePassword}
+                className="absolute inset-y-0 right-3 flex items-center text-gray-300"
+              >
+                {showPassword ? (
+                  <EyeIcon className="h-5 w-5" />
+                ) : (
+                  <EyeSlashIcon className="h-5 w-5" />
+                )}
+              </button>
+            </div>
 
             <button
               type="submit"

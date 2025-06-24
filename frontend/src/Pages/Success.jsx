@@ -9,7 +9,7 @@ const Success = () => {
     toast.success("Payment successful!");
     const timer = setTimeout(() => {
       navigate("/");
-    }, 3000); // Redirect to home after 3 seconds
+    }, 3000); 
 
     return () => clearTimeout(timer);
   }, [navigate]);

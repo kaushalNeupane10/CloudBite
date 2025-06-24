@@ -5,10 +5,20 @@ import {
 } from "@heroicons/react/24/outline";
 import { logout } from "../utils/auth";
 import { Link } from "react-router-dom";
-import myLogo from '../image/logo.png'
+import myLogo from "../image/logo.png";
+import { useNavigate } from "react-router-dom";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = () => {
+    if (searchTerm.trim()) {
+      navigate(`/menu?search=${encodeURIComponent(searchTerm.trim())}`);
+      setIsOpen(false); 
+    }
+  };
 
   return (
     <nav className="bg-gray-900 text-white">
@@ -28,9 +38,14 @@ function Navbar() {
           <input
             type="text"
             placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 rounded-l-lg bg-white text-gray-800 focus:outline-none"
           />
-          <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-r-lg">
+          <button
+            onClick={handleSearch}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-r-lg"
+          >
             Search
           </button>
         </div>
@@ -77,7 +92,11 @@ function Navbar() {
           className="md:hidden focus:outline-none"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+          {isOpen ? (
+            <XIcon className="h-6 w-6" />
+          ) : (
+            <MenuIcon className="h-6 w-6" />
+          )}
         </button>
       </div>
 
@@ -89,9 +108,14 @@ function Navbar() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 rounded-l-lg bg-white text-gray-800 focus:outline-none"
             />
-            <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-r-lg">
+            <button
+              onClick={handleSearch}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-r-lg"
+            >
               Search
             </button>
           </div>
