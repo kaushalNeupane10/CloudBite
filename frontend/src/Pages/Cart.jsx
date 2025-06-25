@@ -47,7 +47,7 @@ export default function CartPage() {
         { items: lineItems }
       );
 
-      const stripe = window.Stripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
+      const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
       await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
     } catch (error) {
       console.error("Checkout error:", error);

@@ -8,7 +8,7 @@ import About from "../Components/About";
 import axiosInstance from "../Components/axiosInstance";
 
 // Load Stripe using env variable
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export default function Home() {
   const [topDishes, setTopDishes] = useState([]);

@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import axiosInstance from "../Components/axiosInstance";
 
 // Load Stripe with key from .env
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const Menu = () => {
   const [menuItems, setMenuItems] = useState([]);

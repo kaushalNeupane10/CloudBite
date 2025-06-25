@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
-console.log("API BASE URL:", process.env.REACT_APP_API_URL);
 
 // Request Interceptor – Adds Access Token
 axiosInstance.interceptors.request.use(
@@ -33,7 +32,7 @@ axiosInstance.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshUrl = `${process.env.REACT_APP_API_URL}/token/refresh/`;
+        const refreshUrl = `${import.meta.env.VITE_API_URL}/token/refresh/`;
         const res = await axios.post(refreshUrl, {
           refresh: refreshToken,
         });

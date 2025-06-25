@@ -9,7 +9,7 @@ const Cancel = () => {
     toast.error("Payment was cancelled.");
     const timer = setTimeout(() => {
       navigate("/menu");
-    }, 3000); // Redirect to menu after 3 seconds
+    }, 3000); 
 
     return () => clearTimeout(timer);
   }, [navigate]);
