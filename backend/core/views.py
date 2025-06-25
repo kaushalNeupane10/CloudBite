@@ -1,82 +1,22 @@
-import logging
-logger = logging.getLogger(__name__)
-import stripe
-from django.utils import timezone
-import json
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets, permissions
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework import generics
-from django.contrib.auth.models import User
+import os
 from django.conf import settings
-from .models import MenuItem, CartItem, Order, Review, OrderItem
-from .serializers import (
-    MenuItemSerializer,
-    CartItemSerializer,
-    OrderSerializer,
-    ReviewSerializer,
-    RegisterSerializer,
-)
+import stripe
+import json
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
-from rest_framework.filters import SearchFilter
+from django.contrib.auth.models import User
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import MenuItem, CartItem, Order, OrderItem
+import logging
 
-class MenuItemViewSet(viewsets.ModelViewSet):
-    queryset = MenuItem.objects.all()
-    serializer_class = MenuItemSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    filter_backends = [SearchFilter]
-    search_fields = ['title', 'description']  
+logger = logging.getLogger(__name__)
 
-class CartItemViewSet(viewsets.ModelViewSet):
-    queryset = CartItem.objects.all()
-    serializer_class = CartItemSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return CartItem.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_staff:
-            return Order.objects.all().order_by('-ordered_at')
-        return Order.objects.filter(user=user).order_by('-ordered_at')
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
-    def get_queryset(self):
-        return Review.objects.all().order_by('-created_at')
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
-
-
-# Stripe setup
 stripe.api_key = settings.STRIPE_SECRET_KEY
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 
 @api_view(['POST'])
@@ -102,8 +42,8 @@ def create_checkout_session(request):
                 "quantity": quantity,
             }],
             mode="payment",
-            success_url="http://localhost:3000/success",
-            cancel_url="http://localhost:3000/cancel",
+            success_url=f"{FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_URL}/cancel",
             metadata={
                 "user_id": str(request.user.id),
                 "cart": json.dumps([{
@@ -153,8 +93,8 @@ def create_multi_checkout_session(request):
         payment_method_types=['card'],
         line_items=line_items,
         mode='payment',
-        success_url='http://localhost:3000/success',
-        cancel_url='http://localhost:3000/cancel',
+        success_url=f"{FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{FRONTEND_URL}/cancel",
         metadata={
             'user_id': str(user.id),
             'cart': json.dumps(cart_metadata)
@@ -184,23 +124,13 @@ def stripe_webhook(request):
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         metadata = session.get('metadata', {})
-        logger.info(f"Session metadata: {metadata}")
-
-        user_id = metadata.get('user_id')
-        cart_items_json = metadata.get('cart')
 
         try:
-            user = User.objects.get(id=user_id)
-            cart_items = json.loads(cart_items_json)
-        except Exception as e:
-            logger.error(f"Error parsing metadata or user: {e}")
-            return HttpResponse(status=400)
+            user = User.objects.get(id=metadata.get('user_id'))
+            cart_items = json.loads(metadata.get('cart'))
 
-        try:
-            # Clear old cart
             CartItem.objects.filter(user=user).delete()
 
-            # Create new order
             order = Order.objects.create(
                 user=user,
                 total_price=sum(item['price'] * item['quantity'] for item in cart_items),
