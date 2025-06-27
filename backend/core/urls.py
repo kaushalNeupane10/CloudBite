@@ -6,14 +6,14 @@ from .views import stripe_webhook
 
 
 router = DefaultRouter()
-router.register(r'menu-items', MenuItemViewSet)
-router.register(r'cart-items', CartItemViewSet)
-router.register(r'orders', OrderViewSet)
-router.register(r'reviews', ReviewViewSet)
+router.register(r'menu-items', MenuItemViewSet, basename='menuitem')
+router.register(r'cart-items', CartItemViewSet, basename='cartitem')
+router.register(r'orders', OrderViewSet, basename='orderitem')
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('api/', include(router.urls)),
-    path('api/register/', RegisterView.as_view(), name='register'),
+    path('api/register/', RegisterView, name='register'),
 
     # JWT Authentication
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

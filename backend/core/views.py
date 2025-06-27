@@ -1,24 +1,78 @@
 import os
-from django.conf import settings
-import stripe
 import json
+import logging
+import stripe
+
+from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib.auth.models import User
+
+from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework import status
-from .models import MenuItem, CartItem, Order, OrderItem
-import logging
+
+from .models import MenuItem, CartItem, Order, Review, OrderItem
+from .serializers import (
+    MenuItemSerializer,
+    CartItemSerializer,
+    OrderSerializer,
+    ReviewSerializer,
+    RegisterSerializer
+)
 
 logger = logging.getLogger(__name__)
-
 stripe.api_key = settings.STRIPE_SECRET_KEY
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+#  Menu Item ViewSet
+class MenuItemViewSet(viewsets.ModelViewSet):
+    queryset = MenuItem.objects.all().order_by('-created_at')
+    serializer_class = MenuItemSerializer
 
+#  Cart Item ViewSet
+class CartItemViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CartItemSerializer
+
+    def get_queryset(self):
+        return CartItem.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+# ✅ Order ViewSet
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+# ✅ Review ViewSet
+class ReviewViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+# ✅ Register View
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def RegisterView(request):
+    serializer = RegisterSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# ✅ Stripe Checkout for Single Item
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_checkout_session(request):
@@ -58,7 +112,7 @@ def create_checkout_session(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-
+# ✅ Stripe Checkout for Multiple Cart Items
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_multi_checkout_session(request):
@@ -102,7 +156,7 @@ def create_multi_checkout_session(request):
     )
     return Response({"sessionId": session.id})
 
-
+# ✅ Stripe Webhook to Create Order
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body

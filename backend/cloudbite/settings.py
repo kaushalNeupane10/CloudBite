@@ -88,12 +88,22 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# CORS
+# CORS for production
+#if DEBUG:
+ #   CORS_ALLOW_ALL_ORIGINS = True
+#else:
+ #   CORS_ALLOW_ALL_ORIGINS = False
+  #  CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+
+#local purpose
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
     CORS_ALLOW_ALL_ORIGINS = False
-    CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    CORS_ALLOWED_ORIGINS = [
+        "https://cloudbites.netlify.app",
+        "http://localhost:3000"
+    ]
 
 # REST Framework
 REST_FRAMEWORK = {
