@@ -16,11 +16,11 @@ class MenuItemSerializer(serializers.ModelSerializer):
         model = MenuItem
         fields = ["id", "title", "description", "price", "image"]
 
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url.replace("http://", "https://")
+        return None
 
-def get_image(self, obj):
-    if obj.image:
-        return obj.image.url.replace("http://", "https://")
-    return None
 
 
 class CartItemSerializer(serializers.ModelSerializer):
