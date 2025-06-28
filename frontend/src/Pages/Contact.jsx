@@ -33,7 +33,7 @@ export default function Contact() {
               />
               <button
                 type="submit"
-                className="w-full p-3 bg-gray-700 text-white font-semibold rounded-md hover:bg-gray-600"
+                className="w-full p-3 bg-red-600 text-white font-semibold rounded-md hover:bg-gray-700"
               >
                 Send Message
               </button>
@@ -45,10 +45,10 @@ export default function Contact() {
             <h3 className="text-2xl font-semibold mb-4">Contact Information</h3>
             <div className="space-y-3">
               <p>
-                <span className="font-semibold">Location:</span> 123 Cloud Kitchen St, NY 10001
+                <span className="font-semibold">Location:</span>Cloud Kitchen,bharatpur-16,chitwan
               </p>
               <p>
-                <span className="font-semibold">Phone:</span> +1 (555) 123-4567
+                <span className="font-semibold">Phone:</span> +977-9123456789
               </p>
               <p>
                 <span className="font-semibold">Email:</span> contact@cloudbite.com
@@ -61,10 +61,10 @@ export default function Contact() {
             <div className="mt-6">
               <h3 className="text-2xl font-semibold mb-2">Delivery Area</h3>
               <ul className="list-disc ml-5">
-                <li>Manhattan (All areas)</li>
-                <li>Brooklyn (Selected areas)</li>
-                <li>Queens (Selected areas)</li>
-                <li>Long Island City</li>
+                <li>Chitwan (All areas)</li>
+                <li>gaidakot (Selected areas)</li>
+                <li>sauraha (Selected areas)</li>
+                <li>parsa</li>
               </ul>
             </div>
           </div>

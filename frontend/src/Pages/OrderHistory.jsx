@@ -11,7 +11,11 @@ export default function OrderHistoryPage() {
   const fetchOrders = async () => {
     try {
       const res = await axiosInstance.get("/orders/");
-      setOrders(res.data);
+      // Sort newest to oldest based on ordered_at
+      const sortedOrders = res.data.sort(
+        (a, b) => new Date(b.ordered_at) - new Date(a.ordered_at)
+      );
+      setOrders(sortedOrders);
     } catch (err) {
       console.error("Error fetching orders:", err);
     }
@@ -34,19 +38,17 @@ export default function OrderHistoryPage() {
                 className="border border-gray-300 rounded-lg p-4 md:p-6"
               >
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
-                  <p className="font-semibold text-lg">Order #{order.id}</p>
                   <span
-                    className={`mt-2 md:mt-0 text-sm font-medium ${
+                    className={`text-sm font-medium ${
                       order.is_paid ? "text-green-600" : "text-red-600"
                     }`}
                   >
                     {order.is_paid ? "Success" : "Canceled"}
                   </span>
+                  <p className="text-gray-600 mt-2 md:mt-0">
+                    {new Date(order.ordered_at).toLocaleString()}
+                  </p>
                 </div>
-
-                <p className="text-gray-600 mb-4">
-                  Date: {new Date(order.ordered_at).toLocaleString()}
-                </p>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
