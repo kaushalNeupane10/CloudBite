@@ -4,14 +4,22 @@ const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 });
 
-
-// Request Interceptor – Adds Access Token
+// Request Interceptor – Adds Access Token except on auth routes
 axiosInstance.interceptors.request.use(
   async (config) => {
     const token = localStorage.getItem("token");
-    if (token) {
+
+    // Define auth routes where token should NOT be added
+    const authRoutes = ["/token/", "/register/"];
+
+    // Check if request URL includes any of the auth routes
+    const isAuthRoute = authRoutes.some((route) => config.url.includes(route));
+
+    // Add Authorization header only if token exists and NOT an auth route
+    if (token && !isAuthRoute) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error)

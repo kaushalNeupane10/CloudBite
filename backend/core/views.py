@@ -8,8 +8,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from django.contrib.auth.models import User
-
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -31,6 +30,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 class MenuItemViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.all().order_by('-created_at')
     serializer_class = MenuItemSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'description']
 
 #  Cart Item ViewSet
 class CartItemViewSet(viewsets.ModelViewSet):

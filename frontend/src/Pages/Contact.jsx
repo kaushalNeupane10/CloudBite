@@ -33,7 +33,7 @@ export default function Contact() {
               />
               <button
                 type="submit"
-                className="w-full p-3 bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-600"
+                className="w-full p-3 bg-gray-700 text-white font-semibold rounded-md hover:bg-gray-600"
               >
                 Send Message
               </button>
