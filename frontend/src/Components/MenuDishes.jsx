@@ -6,9 +6,9 @@ const MenuDishes = ({
   handleBuyNow = () => {},
 }) => {
   return (
-    <div className="mb-10 px-4 sm:px-6 lg:px-8">
+    <div className="mb-10 px-4 mt-6 sm:px-6 lg:px-8">
       {/* Header */}
-      <h2 className="text-2xl font-bold text-white text-center mb-6">
+      <h2 className="text-2xl font-bold mt-2 text-white text-center mb-6">
         Top Picks
       </h2>
 
@@ -17,7 +17,7 @@ const MenuDishes = ({
         {dishes.map((item) => (
           <div
             key={item.id}
-            className="bg-gray-800 rounded-2xl p-4 shadow-lg hover:shadow-2xl transition-shadow flex flex-col"
+            className="bg-gray-800 rounded-2xl border border-white p-4 shadow-lg hover:shadow-2xl transition-shadow flex flex-col"
           >
             <h3 className="text-lg sm:text-xl font-semibold text-center text-white pb-2">
               {item.title}

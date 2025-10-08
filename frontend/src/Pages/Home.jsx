@@ -1,17 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { toast } from "react-toastify";
 import { loadStripe } from "@stripe/stripe-js";
+import { useNavigate } from "react-router-dom";
 
 import Hero from "../Components/Hero";
 import MenuDishes from "../Components/MenuDishes";
 import About from "../Components/About";
 import axiosInstance from "../Components/axiosInstance";
+import HappyCustomers from "../Components/HappyCustomers";
+import Feature from "../Components/Feature";
+import { AuthContext } from "../context/AuthContext.jsx";
 
 // Load Stripe using env variable
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export default function Home() {
   const [topDishes, setTopDishes] = useState([]);
+  const { user } = useContext(AuthContext); // <-- Get user from context
+  const navigate = useNavigate();
 
   useEffect(() => {
     axiosInstance
@@ -26,6 +32,12 @@ export default function Home() {
   }, []);
 
   const addToCart = async (menuItemId) => {
+    if (!user) {
+      toast.info("Please login or signup first!");
+      navigate("/login");
+      return;
+    }
+
     try {
       await axiosInstance.post("cart-items/", {
         menu_item_id: menuItemId,
@@ -39,6 +51,12 @@ export default function Home() {
   };
 
   const handleBuyNow = async (menuItemId) => {
+    if (!user) {
+      toast.info("Please login or signup first!");
+      navigate("/login");
+      return;
+    }
+
     try {
       const response = await axiosInstance.post("create-checkout-session/", {
         menu_item_id: menuItemId,
@@ -62,6 +80,8 @@ export default function Home() {
         handleBuyNow={handleBuyNow}
       />
       <About />
+      <HappyCustomers />
+      <Feature />
     </div>
   );
 }

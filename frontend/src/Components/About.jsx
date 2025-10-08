@@ -36,46 +36,9 @@ export default function About() {
               <img
                 src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1000&q=80"
                 alt="Our Kitchen"
-                className="rounded-md shadow-lg"
+                className="rounded-md shadow-lg border border-white"
               />
             </div>
-          </div>
-
-          {/* Features Section */}
-          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              {
-                icon: "⏱️",
-                title: "Fast Delivery",
-                text: "Quick and reliable delivery to your doorstep",
-              },
-              {
-                icon: "🏅",
-                title: "Quality First",
-                text: "Premium ingredients and expert preparation",
-              },
-              {
-                icon: "👩‍🍳",
-                title: "Expert Team",
-                text: "Skilled chefs and kitchen professionals",
-              },
-              {
-                icon: "🚚",
-                title: "Wide Coverage",
-                text: "Serving multiple locations in the city",
-              },
-            ].map((feature, index) => (
-              <div
-                key={index}
-                className="text-center p-4 bg-gray-800 rounded-md"
-              >
-                <div className="text-orange-400 text-4xl mb-2">
-                  {feature.icon}
-                </div>
-                <h4 className="font-semibold">{feature.title}</h4>
-                <p className="text-gray-300">{feature.text}</p>
-              </div>
-            ))}
           </div>
         </section>
       </div>

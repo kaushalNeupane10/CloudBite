@@ -72,8 +72,8 @@ export default function Footer() {
         <div>
           <h3 className="text-xl font-semibold mb-5">Contact Us</h3>
           <address className="not-italic space-y-2 text-gray-400 text-sm sm:text-base">
-            <p>123 Cloud Kitchen St, NY 10001</p>
-            <p>+1 (555) 123-4567</p>
+            <p>123 Cloud Kitchen, NGT, Chitwan</p>
+            <p>+977-99999999</p>
             <p>contact@cloudbite.com</p>
             <p>Mon-Sun: 10:00 AM - 10:00 PM</p>
           </address>
