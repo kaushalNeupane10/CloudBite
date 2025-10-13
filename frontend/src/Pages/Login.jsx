@@ -34,10 +34,29 @@ function Login() {
           password: formData.password,
         });
 
+        // ✅ Save tokens
         localStorage.setItem("token", res.data.access);
         localStorage.setItem("refreshToken", res.data.refresh);
+
         toast.success("Logged in!");
-        navigate("/");
+
+        // ✅ Check for pending action
+        const pendingAction = localStorage.getItem("pendingAction");
+        if (pendingAction) {
+          const { type, menuItemId } = JSON.parse(pendingAction);
+          localStorage.removeItem("pendingAction");
+
+          // Redirect to perform-action route
+          if (type === "addToCart") {
+            navigate(`/perform-action/addToCart/${menuItemId}`);
+          } else if (type === "buyNow") {
+            navigate(`/perform-action/buyNow/${menuItemId}`);
+          } else {
+            navigate("/");
+          }
+        } else {
+          navigate("/");
+        }
       } else {
         await axiosInstance.post("register/", {
           username: formData.username,

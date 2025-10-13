@@ -22,7 +22,9 @@ const Menu = () => {
       try {
         const params = new URLSearchParams(location.search);
         const search = params.get("search") || "";
-        const response = await axiosInstance.get(`/menu-items/?search=${search}`);
+        const response = await axiosInstance.get(
+          `/menu-items/?search=${search}`
+        );
         setMenuItems(response.data);
       } catch (error) {
         console.error("Error fetching menu:", error);
@@ -37,34 +39,53 @@ const Menu = () => {
 
   // Add item to cart
   const addToCart = async (menuItemId) => {
-    if (!user) {
-      toast.info("Please login or signup first!");
-      navigate("/login");
-      return; // stop function if not logged in
+    const token = localStorage.getItem("access");
+    if (!token) {
+      // store intended action and redirect to login
+      localStorage.setItem(
+        "pendingAction",
+        JSON.stringify({
+          type: "addToCart",
+          menuItemId,
+        })
+      );
+      toast.info("Please login or signup first.");
+      window.location.href = "/login";
+      return;
     }
 
     try {
-      await axiosInstance.post("/cart-items/", {
+      await axiosInstance.post("cart-items/", {
         menu_item_id: menuItemId,
         quantity: 1,
       });
       toast.success("Item added to cart!");
     } catch (error) {
-      console.error("Add to cart error:", error.response?.data || error.message);
+      console.error(
+        "Add to cart error:",
+        error.response?.data || error.message
+      );
       toast.error("Could not add item to cart.");
     }
   };
 
-  // Buy Now using Stripe
   const handleBuyNow = async (menuItemId) => {
-    if (!user) {
-      toast.info("Please login or signup first!");
-      navigate("/login");
-      return; // stop function if not logged in
+    const token = localStorage.getItem("access");
+    if (!token) {
+      localStorage.setItem(
+        "pendingAction",
+        JSON.stringify({
+          type: "buyNow",
+          menuItemId,
+        })
+      );
+      toast.info("Please login or signup first.");
+      window.location.href = "/login";
+      return;
     }
 
     try {
-      const response = await axiosInstance.post("/create-checkout-session/", {
+      const response = await axiosInstance.post("create-checkout-session/", {
         menu_item_id: menuItemId,
         quantity: 1,
       });
@@ -72,7 +93,7 @@ const Menu = () => {
       const stripe = await stripePromise;
       await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
     } catch (error) {
-      console.error("Payment error:", error.response?.data || error.message);
+      console.error("Buy Now error:", error.response?.data || error.message);
       toast.error("Payment failed. Try again.");
     }
   };
@@ -98,7 +119,10 @@ const Menu = () => {
               {item.title}
             </h3>
             <img
-              src={item.image || "https://via.placeholder.com/300x200?text=No+Image"}
+              src={
+                item.image ||
+                "https://via.placeholder.com/300x200?text=No+Image"
+              }
               alt={item.title}
               className="w-full h-44 sm:h-48 object-cover rounded-md mb-4"
             />
@@ -112,13 +136,13 @@ const Menu = () => {
             </p>
             <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <button
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm sm:text-base font-medium w-full sm:w-1/2"
+                className="bg-red-500 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm sm:text-base font-medium w-full sm:w-1/2"
                 onClick={() => addToCart(item.id)}
               >
                 Add to Cart
               </button>
               <button
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm sm:text-base font-medium w-full sm:w-1/2"
+                className="bg-gray-700 hover:bg-gray-600 border border-white text-white px-4 py-2 rounded-md text-sm sm:text-base font-medium w-full sm:w-1/2"
                 onClick={() => handleBuyNow(item.id)}
               >
                 Buy Now

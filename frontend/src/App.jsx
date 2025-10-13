@@ -10,6 +10,7 @@ import Cart from "./Pages/Cart";
 import Success from "./Pages/Success";
 import Cancel from "./Pages/Cancel";
 import OrderHistoryPage from "./Pages/OrderHistory";
+import ActionHandler from "./Pages/ActionHandler";
 
 export default function App() {
   return (
@@ -22,7 +23,7 @@ export default function App() {
         progressClassName="bg-red-500"
       />
       <Routes>
-        {/* Public routes */}
+        {/* Public routes inside main layout */}
         <Route path="/" element={<Mainlayout />}>
           <Route index element={<Home />} />
           <Route path="menu" element={<Menu />} />
@@ -33,8 +34,9 @@ export default function App() {
           <Route path="order" element={<OrderHistoryPage />} />
         </Route>
 
-        {/* Login page */}
+        {/* Login & ActionHandler routes (outside layout) */}
         <Route path="/login" element={<Login />} />
+        <Route path="/perform-action/:actionType/:menuItemId" element={<ActionHandler />} />
       </Routes>
     </Router>
   );

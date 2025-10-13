@@ -37,13 +37,13 @@ const MenuDishes = ({
             </p>
             <div className="mt-4 flex gap-2">
               <button
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md flex-1 text-sm sm:text-base"
+                className="bg-red-500 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-md flex-1 text-sm sm:text-base"
                 onClick={() => addToCart(item.id)}
               >
                 Add to Cart
               </button>
               <button
-                className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md flex-1 text-sm sm:text-base"
+                className="bg-gray-700 border border-white hover:bg-gray-600 text-white px-4 py-2 rounded-md flex-1 text-sm sm:text-base"
                 onClick={() => handleBuyNow(item.id)}
               >
                 Buy Now

@@ -9,7 +9,7 @@ const Hero = () => {
     >
       <div className="text-center p-6 sm:p-10 rounded-lg max-w-4xl mb-10 -mt-30">
         <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-          Restaurant-<span className="text-orange-500">Quality</span> Meals,
+          Restaurant-Quality Meals,
           <br />
           Delivered to Your Door
         </h1>
