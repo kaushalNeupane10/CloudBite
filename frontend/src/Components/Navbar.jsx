@@ -6,44 +6,39 @@ import {
 import { logout } from "../utils/auth";
 import { Link, useNavigate } from "react-router-dom";
 import myLogo from "../image/logo.png";
-import axiosInstance from "../Components/axiosInstance";
 import { AuthContext } from "../context/AuthContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
+import { FiShoppingCart } from "react-icons/fi";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [cartCount, setCartCount] = useState(0);
+  const [guestCartCount, setGuestCartCount] = useState(0); // For guest users
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const { cartCount } = useCart(); // Logged-in user's cart count
 
-  // Fetch cart count from API (for logged-in users)
-  const fetchCartCount = async () => {
-    if (!user) {
-      // Guest cart
-      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
-      setCartCount(guestCart.reduce((sum, item) => sum + (item.quantity || 1), 0));
-      return;
-    }
-    try {
-      const response = await axiosInstance.get("cart-items/");
-      setCartCount(response.data.reduce((sum, item) => sum + item.quantity, 0));
-    } catch (error) {
-      console.error("Error fetching cart count:", error);
-      setCartCount(0);
-    }
-  };
-
-  // Initialize and listen for changes
+  // Update guest cart count from localStorage
   useEffect(() => {
-    fetchCartCount();
-
-    const handleStorageChange = () => {
-      fetchCartCount();
+    const updateGuestCartCount = () => {
+      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+      const totalQuantity = guestCart.reduce(
+        (acc, item) => acc + (item.quantity || 0),
+        0
+      );
+      setGuestCartCount(totalQuantity);
     };
 
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, [user]);
+    // Initial load
+    updateGuestCartCount();
+
+    // Listen for storage events to update count across tabs
+    window.addEventListener("storage", updateGuestCartCount);
+
+    return () => {
+      window.removeEventListener("storage", updateGuestCartCount);
+    };
+  }, []);
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
@@ -51,6 +46,9 @@ function Navbar() {
       setIsOpen(false);
     }
   };
+
+  // Total cart count: guest or logged-in
+  const totalCartCount = user ? cartCount : guestCartCount;
 
   return (
     <nav className="bg-gray-900 text-white">
@@ -85,26 +83,35 @@ function Navbar() {
         {/* Desktop Menu */}
         <ul className="hidden md:flex items-center space-x-6">
           <li>
-            <Link to="/" className="hover:text-red-400">Home</Link>
+            <Link to="/" className="hover:text-red-400">
+              Home
+            </Link>
           </li>
           <li>
-            <Link to="/menu" className="hover:text-red-400">Menu</Link>
+            <Link to="/menu" className="hover:text-red-400">
+              Menu
+            </Link>
           </li>
           <li>
-            <Link to="/contact" className="hover:text-red-400">Contact</Link>
+            <Link to="/contact" className="hover:text-red-400">
+              Contact
+            </Link>
           </li>
           <li className="relative">
             <Link to="/cart" className="hover:text-red-400 flex items-center">
-              Cart
-              {cartCount > 0 && (
+              <FiShoppingCart className="w-6 h-6" />
+
+              {totalCartCount > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">
-                  {cartCount}
+                  {totalCartCount}
                 </span>
               )}
             </Link>
           </li>
           <li>
-            <Link to="/order" className="hover:text-red-400">Order History</Link>
+            <Link to="/order" className="hover:text-red-400">
+              Order History
+            </Link>
           </li>
           <li>
             <button
@@ -121,7 +128,11 @@ function Navbar() {
           className="md:hidden focus:outline-none"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+          {isOpen ? (
+            <XIcon className="h-6 w-6" />
+          ) : (
+            <MenuIcon className="h-6 w-6" />
+          )}
         </button>
       </div>
 
@@ -148,26 +159,54 @@ function Navbar() {
           {/* Mobile Links */}
           <ul className="flex flex-col space-y-2">
             <li>
-              <Link to="/" onClick={() => setIsOpen(false)} className="block text-white hover:text-red-400">Home</Link>
+              <Link
+                to="/"
+                onClick={() => setIsOpen(false)}
+                className="block text-white hover:text-red-400"
+              >
+                Home
+              </Link>
             </li>
             <li>
-              <Link to="/menu" onClick={() => setIsOpen(false)} className="block text-white hover:text-red-400">Menu</Link>
+              <Link
+                to="/menu"
+                onClick={() => setIsOpen(false)}
+                className="block text-white hover:text-red-400"
+              >
+                Menu
+              </Link>
             </li>
             <li>
-              <Link to="/contact" onClick={() => setIsOpen(false)} className="block text-white hover:text-red-400">Contact</Link>
+              <Link
+                to="/contact"
+                onClick={() => setIsOpen(false)}
+                className="block text-white hover:text-red-400"
+              >
+                Contact
+              </Link>
             </li>
             <li className="relative">
-              <Link to="/cart" onClick={() => setIsOpen(false)} className="block text-white hover:text-red-400 flex items-center">
-                Cart
-                {cartCount > 0 && (
+              <Link
+                to="/cart"
+                onClick={() => setIsOpen(false)}
+                className="block text-white hover:text-red-400 flex items-center"
+              >
+                <FiShoppingCart className="w-6 h-6" />
+                {totalCartCount > 0 && (
                   <span className="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">
-                    {cartCount}
+                    {totalCartCount}
                   </span>
                 )}
               </Link>
             </li>
             <li>
-              <Link to="/order" onClick={() => setIsOpen(false)} className="block text-white hover:text-red-400">Order History</Link>
+              <Link
+                to="/order"
+                onClick={() => setIsOpen(false)}
+                className="block text-white hover:text-red-400"
+              >
+                Order History
+              </Link>
             </li>
             <li>
               <button

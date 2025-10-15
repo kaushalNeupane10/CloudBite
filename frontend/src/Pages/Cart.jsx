@@ -1,85 +1,70 @@
 import { useEffect, useState, useContext } from "react";
-import axiosInstance from "../Components/axiosInstance";
 import { AuthContext } from "../context/AuthContext.jsx";
-
-export default function CartPage({ updateCartCount }) {
+import { useCart } from "../context/CartContext.jsx";
+import axiosInstance from "../Components/axiosInstance";
+import { toast } from "react-toastify";
+import { FiShoppingCart } from "react-icons/fi";
+export default function CartPage() {
   const { user } = useContext(AuthContext);
-  const [cartItems, setCartItems] = useState([]);
+  const {
+    cartItems,
+    setCartCount,
+    removeFromCart,
+    updateCartQuantity,
+    fetchCart,
+  } = useCart();
   const [loading, setLoading] = useState(true);
 
+  // Fetch cart on load
   useEffect(() => {
-    // Merge guest cart if any
-    const mergeGuestCart = async () => {
-      if (user) {
-        const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
-        for (const menuItemId of guestCart) {
-          try {
-            await axiosInstance.post("cart-items/", { menu_item_id: menuItemId, quantity: 1 });
-          } catch (error) {
-            console.error("Error merging guest cart item:", error);
-          }
-        }
-        localStorage.removeItem("guestCart");
-      }
-    };
-
-    const fetchCart = async () => {
+    const loadCart = async () => {
       setLoading(true);
       try {
-        await mergeGuestCart();
-        const response = await axiosInstance.get("cart-items/");
-        setCartItems(response.data);
-
-        // Update cart notification in navbar
-        if (updateCartCount) updateCartCount(response.data.length);
-      } catch (error) {
-        console.error("Error fetching cart:", error);
+        await fetchCart();
+      } catch (err) {
+        console.error("Error loading cart:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchCart();
+    loadCart();
   }, [user]);
 
-  const handleRemove = async (id) => {
-    try {
-      await axiosInstance.delete(`cart-items/${id}/`);
-      const updatedCart = cartItems.filter((item) => item.id !== id);
-      setCartItems(updatedCart);
+  const handleRemove = async (menuItemId) => {
+    await removeFromCart(menuItemId);
+  };
 
-      // Update cart notification in navbar
-      if (updateCartCount) updateCartCount(updatedCart.length);
-    } catch (error) {
-      console.error("Error removing item:", error);
-      alert("Failed to remove item. Please try again.");
-    }
+  const handleQuantityChange = async (menuItemId, delta) => {
+    const item = cartItems.find((i) => i.menu_item?.id === menuItemId);
+    if (!item) return;
+    await updateCartQuantity(menuItemId, item.quantity + delta);
   };
 
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
-      alert("Your cart is empty");
+      toast.info("Your cart is empty");
       return;
     }
-
     try {
       const lineItems = cartItems.map((item) => ({
         menu_item_id: item.menu_item.id,
         quantity: item.quantity,
       }));
 
-      const response = await axiosInstance.post("create-multi-checkout-session/", { items: lineItems });
-
+      const response = await axiosInstance.post(
+        "/create-multi-checkout-session/",
+        { items: lineItems }
+      );
       const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
       await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
     } catch (error) {
       console.error("Checkout error:", error);
-      alert("Failed to start checkout. Please try again.");
+      toast.error("Failed to start checkout. Please try again.");
     }
   };
 
   const total = cartItems.reduce(
-    (sum, item) => sum + item.menu_item.price * item.quantity,
+    (sum, item) => sum + (item.menu_item.price || 0) * item.quantity,
     0
   );
 
@@ -87,15 +72,15 @@ export default function CartPage({ updateCartCount }) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-gray-800">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mb-4"></div>
-        <p className="text-xl">Loading your cart...</p>
       </div>
     );
 
   return (
     <div className="min-h-screen bg-gray-100 px-4 py-8">
       <div className="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-        <h1 className="text-3xl font-extrabold text-center text-orange-600 mb-8">
-          Your Cart
+        <h1 className="text-3xl font-extrabold text-center text-orange-600 mb-8 flex items-center justify-center gap-2">
+          Cart
+          <FiShoppingCart className="w-8 h-8" />
         </h1>
 
         {cartItems.length === 0 ? (
@@ -104,27 +89,45 @@ export default function CartPage({ updateCartCount }) {
           <div className="space-y-6">
             {cartItems.map((item) => (
               <div
-                key={item.id}
+                key={item.menu_item.id}
                 className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b pb-4"
               >
                 <img
                   src={
-                    item.menu_item?.image ||
+                    item.menu_item.image ||
                     "https://via.placeholder.com/100x100?text=No+Image"
                   }
                   alt={item.menu_item.title}
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-lg font-semibold">{item.menu_item.title}</h2>
-                  <p className="text-gray-500">Quantity: {item.quantity}</p>
+                  <h2 className="text-lg font-semibold">
+                    {item.menu_item.title}
+                  </h2>
+                  <div className="flex justify-center sm:justify-start items-center mt-1 gap-2">
+                    <button
+                      onClick={() =>
+                        handleQuantityChange(item.menu_item.id, -1)
+                      }
+                      className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded"
+                    >
+                      -
+                    </button>
+                    <span className="px-2">{item.quantity}</span>
+                    <button
+                      onClick={() => handleQuantityChange(item.menu_item.id, 1)}
+                      className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-orange-500">
                     ${(item.menu_item.price * item.quantity).toFixed(2)}
                   </p>
                   <button
-                    onClick={() => handleRemove(item.id)}
+                    onClick={() => handleRemove(item.menu_item.id)}
                     className="mt-2 bg-red-500 text-white px-3 py-1 text-sm rounded-md hover:bg-red-600 transition"
                   >
                     Remove

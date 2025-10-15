@@ -1,4 +1,3 @@
-// src/pages/Menu.jsx
 import { useEffect, useState, useContext } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "react-toastify";
@@ -6,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import axiosInstance from "../Components/axiosInstance";
 import { AuthContext } from "../context/AuthContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
@@ -15,6 +15,7 @@ const Menu = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useContext(AuthContext);
+  const { addToCart } = useCart();
 
   // Fetch menu items
   useEffect(() => {
@@ -23,16 +24,20 @@ const Menu = () => {
       try {
         const params = new URLSearchParams(location.search);
         const search = params.get("search") || "";
-        const response = await axiosInstance.get(`/menu-items/?search=${search}`);
+        const response = await axiosInstance.get(
+          `/menu-items/?search=${search}`
+        );
         setMenuItems(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.error("Error fetching menu:", error.response?.data || error.message);
+        console.error(
+          "Error fetching menu:",
+          error.response?.data || error.message
+        );
         toast.error("Failed to load menu items.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchMenu();
   }, [location.search]);
 
@@ -52,43 +57,44 @@ const Menu = () => {
         }
         localStorage.removeItem("guestCart");
         toast.success("Guest cart merged!");
-        window.dispatchEvent(new Event("storage")); // update Navbar
+        window.dispatchEvent(new Event("storage"));
       } catch (err) {
-        console.error("Error merging guest cart:", err.response?.data || err.message);
+        console.error(
+          "Error merging guest cart:",
+          err.response?.data || err.message
+        );
       }
     };
 
     mergeGuestCart();
   }, [user]);
 
-  const addToCart = async (menuItemId) => {
+  // Handle Add to Cart
+  const handleAddToCart = async (menuItemId) => {
     if (!user) {
-      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
-      guestCart.push({ menuItemId, quantity: 1 });
-      localStorage.setItem("guestCart", JSON.stringify(guestCart));
-      localStorage.setItem("pendingAction", JSON.stringify({ type: "addToCart", menuItemId }));
-      toast.info("Please login or signup first.");
-      window.dispatchEvent(new Event("storage"));
+      // For guest, store in CartContext (which handles localStorage)
+      await addToCart(menuItemId);
       navigate("/login");
       return;
     }
 
     try {
-      await axiosInstance.post("/cart-items/", { menu_item_id: menuItemId, quantity: 1 });
-      toast.success("Item added to cart!");
-      window.dispatchEvent(new Event("storage"));
+      await addToCart(menuItemId); // CartContext handles API & toast
     } catch (error) {
       console.error("Add to cart error:", error.response?.data || error.message);
-      toast.error(error.response?.data?.detail || "Could not add item to cart.");
     }
   };
 
+  // Handle Buy Now
   const handleBuyNow = async (menuItemId) => {
     if (!user) {
       const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
       guestCart.push({ menuItemId, quantity: 1 });
       localStorage.setItem("guestCart", JSON.stringify(guestCart));
-      localStorage.setItem("pendingAction", JSON.stringify({ type: "buyNow", menuItemId }));
+      localStorage.setItem(
+        "pendingAction",
+        JSON.stringify({ type: "buyNow", menuItemId })
+      );
       toast.info("Please login or signup first.");
       window.dispatchEvent(new Event("storage"));
       navigate("/login");
@@ -138,7 +144,10 @@ const Menu = () => {
               {item.title}
             </h3>
             <img
-              src={item.image || "https://via.placeholder.com/300x200?text=No+Image"}
+              src={
+                item.image ||
+                "https://via.placeholder.com/300x200?text=No+Image"
+              }
               alt={item.title}
               className="w-full h-44 sm:h-48 object-cover rounded-md mb-4"
             />
@@ -153,7 +162,7 @@ const Menu = () => {
             <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <button
                 className="bg-red-500 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm sm:text-base font-medium w-full sm:w-1/2"
-                onClick={() => addToCart(item.id)}
+                onClick={() => handleAddToCart(item.id)}
               >
                 Add to Cart
               </button>

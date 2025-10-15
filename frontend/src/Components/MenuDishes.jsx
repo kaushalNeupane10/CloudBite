@@ -1,37 +1,34 @@
 import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext.jsx";
 import { toast } from "react-toastify";
 
-const MenuDishes = ({
-  dishes = [],
-  addToCart = () => {},
-  handleBuyNow = () => {},
-  loading = false, 
-}) => {
-  if (loading) {
+const MenuDishes = ({ dishes = [], handleBuyNow = () => {}, loading = false }) => {
+  const { addToCart } = useCart(); // use CartContext
+
+  const handleAddToCart = async (id) => {
+    try {
+      await addToCart(id, 1); // Add 1 quantity
+    } catch (err) {
+      console.error("Add to cart error:", err);
+      toast.error("Failed to add item to cart");
+    }
+  };
+
+  if (loading || !dishes.length) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64 text-white">
         <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-500 mb-4"></div>
-        <p className="text-xl">Loading menu items...</p>
-      </div>
-    );
-  }
-
-  if (!dishes.length) {
-    return (
-      <div className="text-center text-white text-lg py-10">
-        No dishes available.
+        <p className="text-xl">Loading Top menu items...</p>
       </div>
     );
   }
 
   return (
     <div className="mb-10 px-4 mt-6 sm:px-6 lg:px-8">
-      {/* Header */}
       <h2 className="text-2xl font-bold mt-2 text-white text-center mb-6">
         Top Picks
       </h2>
 
-      {/* Dishes Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {dishes.map((item) => (
           <div
@@ -42,11 +39,7 @@ const MenuDishes = ({
               {item.title}
             </h3>
             <img
-              src={
-                item.image
-                  ? item.image
-                  : "https://via.placeholder.com/300x200?text=No+Image"
-              }
+              src={item.image || "https://via.placeholder.com/300x200?text=No+Image"}
               alt={item.title}
               className="w-full h-48 sm:h-52 object-cover rounded-md mb-4"
             />
@@ -61,7 +54,7 @@ const MenuDishes = ({
             <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <button
                 className="bg-red-500 border border-white hover:bg-red-600 text-white px-4 py-2 rounded-md flex-1 text-sm sm:text-base"
-                onClick={() => addToCart(item.id)}
+                onClick={() => handleAddToCart(item.id)}
               >
                 Add to Cart
               </button>
@@ -76,7 +69,6 @@ const MenuDishes = ({
         ))}
       </div>
 
-      {/* See More Link */}
       <div className="mt-8 text-center">
         <Link
           to="/menu"
