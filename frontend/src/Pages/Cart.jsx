@@ -1,29 +1,55 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import axiosInstance from "../Components/axiosInstance";
+import { AuthContext } from "../context/AuthContext.jsx";
 
-export default function CartPage() {
+export default function CartPage({ updateCartCount }) {
+  const { user } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCart();
-  }, []);
+    // Merge guest cart if any
+    const mergeGuestCart = async () => {
+      if (user) {
+        const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+        for (const menuItemId of guestCart) {
+          try {
+            await axiosInstance.post("cart-items/", { menu_item_id: menuItemId, quantity: 1 });
+          } catch (error) {
+            console.error("Error merging guest cart item:", error);
+          }
+        }
+        localStorage.removeItem("guestCart");
+      }
+    };
 
-  const fetchCart = async () => {
-    try {
-      const response = await axiosInstance.get("cart-items/");
-      setCartItems(response.data);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchCart = async () => {
+      setLoading(true);
+      try {
+        await mergeGuestCart();
+        const response = await axiosInstance.get("cart-items/");
+        setCartItems(response.data);
+
+        // Update cart notification in navbar
+        if (updateCartCount) updateCartCount(response.data.length);
+      } catch (error) {
+        console.error("Error fetching cart:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, [user]);
 
   const handleRemove = async (id) => {
     try {
       await axiosInstance.delete(`cart-items/${id}/`);
-      setCartItems(cartItems.filter((item) => item.id !== id));
+      const updatedCart = cartItems.filter((item) => item.id !== id);
+      setCartItems(updatedCart);
+
+      // Update cart notification in navbar
+      if (updateCartCount) updateCartCount(updatedCart.length);
     } catch (error) {
       console.error("Error removing item:", error);
       alert("Failed to remove item. Please try again.");
@@ -42,10 +68,7 @@ export default function CartPage() {
         quantity: item.quantity,
       }));
 
-      const response = await axiosInstance.post(
-        "create-multi-checkout-session/",
-        { items: lineItems }
-      );
+      const response = await axiosInstance.post("create-multi-checkout-session/", { items: lineItems });
 
       const stripe = window.Stripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
       await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
@@ -60,7 +83,13 @@ export default function CartPage() {
     0
   );
 
-  if (loading) return <p className="text-center py-10">Loading cart...</p>;
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-gray-800">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mb-4"></div>
+        <p className="text-xl">Loading your cart...</p>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-gray-100 px-4 py-8">
@@ -87,9 +116,7 @@ export default function CartPage() {
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-lg font-semibold">
-                    {item.menu_item.title}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{item.menu_item.title}</h2>
                   <p className="text-gray-500">Quantity: {item.quantity}</p>
                 </div>
                 <div className="text-right">

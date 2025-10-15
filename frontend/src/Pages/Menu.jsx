@@ -1,11 +1,12 @@
+// src/pages/Menu.jsx
 import { useEffect, useState, useContext } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { toast } from "react-toastify";
 import { useLocation, useNavigate } from "react-router-dom";
+
 import axiosInstance from "../Components/axiosInstance";
 import { AuthContext } from "../context/AuthContext.jsx";
 
-// Load Stripe with public key from .env
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const Menu = () => {
@@ -13,7 +14,7 @@ const Menu = () => {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user, loading: authLoading } = useContext(AuthContext);
 
   // Fetch menu items
   useEffect(() => {
@@ -22,12 +23,10 @@ const Menu = () => {
       try {
         const params = new URLSearchParams(location.search);
         const search = params.get("search") || "";
-        const response = await axiosInstance.get(
-          `/menu-items/?search=${search}`
-        );
-        setMenuItems(response.data);
+        const response = await axiosInstance.get(`/menu-items/?search=${search}`);
+        setMenuItems(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.error("Error fetching menu:", error);
+        console.error("Error fetching menu:", error.response?.data || error.message);
         toast.error("Failed to load menu items.");
       } finally {
         setLoading(false);
@@ -37,69 +36,89 @@ const Menu = () => {
     fetchMenu();
   }, [location.search]);
 
-  // Add item to cart
+  // Merge guest cart after login
+  useEffect(() => {
+    const mergeGuestCart = async () => {
+      if (!user) return;
+      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+      if (guestCart.length === 0) return;
+
+      try {
+        for (const item of guestCart) {
+          await axiosInstance.post("/cart-items/", {
+            menu_item_id: item.menuItemId,
+            quantity: item.quantity || 1,
+          });
+        }
+        localStorage.removeItem("guestCart");
+        toast.success("Guest cart merged!");
+        window.dispatchEvent(new Event("storage")); // update Navbar
+      } catch (err) {
+        console.error("Error merging guest cart:", err.response?.data || err.message);
+      }
+    };
+
+    mergeGuestCart();
+  }, [user]);
+
   const addToCart = async (menuItemId) => {
-    const token = localStorage.getItem("access");
-    if (!token) {
-      // store intended action and redirect to login
-      localStorage.setItem(
-        "pendingAction",
-        JSON.stringify({
-          type: "addToCart",
-          menuItemId,
-        })
-      );
+    if (!user) {
+      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+      guestCart.push({ menuItemId, quantity: 1 });
+      localStorage.setItem("guestCart", JSON.stringify(guestCart));
+      localStorage.setItem("pendingAction", JSON.stringify({ type: "addToCart", menuItemId }));
       toast.info("Please login or signup first.");
-      window.location.href = "/login";
+      window.dispatchEvent(new Event("storage"));
+      navigate("/login");
       return;
     }
 
     try {
-      await axiosInstance.post("cart-items/", {
-        menu_item_id: menuItemId,
-        quantity: 1,
-      });
+      await axiosInstance.post("/cart-items/", { menu_item_id: menuItemId, quantity: 1 });
       toast.success("Item added to cart!");
+      window.dispatchEvent(new Event("storage"));
     } catch (error) {
-      console.error(
-        "Add to cart error:",
-        error.response?.data || error.message
-      );
-      toast.error("Could not add item to cart.");
+      console.error("Add to cart error:", error.response?.data || error.message);
+      toast.error(error.response?.data?.detail || "Could not add item to cart.");
     }
   };
 
   const handleBuyNow = async (menuItemId) => {
-    const token = localStorage.getItem("access");
-    if (!token) {
-      localStorage.setItem(
-        "pendingAction",
-        JSON.stringify({
-          type: "buyNow",
-          menuItemId,
-        })
-      );
+    if (!user) {
+      const guestCart = JSON.parse(localStorage.getItem("guestCart") || "[]");
+      guestCart.push({ menuItemId, quantity: 1 });
+      localStorage.setItem("guestCart", JSON.stringify(guestCart));
+      localStorage.setItem("pendingAction", JSON.stringify({ type: "buyNow", menuItemId }));
       toast.info("Please login or signup first.");
-      window.location.href = "/login";
+      window.dispatchEvent(new Event("storage"));
+      navigate("/login");
       return;
     }
 
     try {
-      const response = await axiosInstance.post("create-checkout-session/", {
+      const response = await axiosInstance.post("/create-checkout-session/", {
         menu_item_id: menuItemId,
         quantity: 1,
       });
-
       const stripe = await stripePromise;
-      await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
+      if (stripe && response.data.sessionId) {
+        await stripe.redirectToCheckout({ sessionId: response.data.sessionId });
+      } else {
+        toast.error("Stripe checkout failed.");
+      }
     } catch (error) {
       console.error("Buy Now error:", error.response?.data || error.message);
-      toast.error("Payment failed. Try again.");
+      toast.error(error.response?.data?.detail || "Payment failed. Try again.");
     }
   };
 
-  if (loading) {
-    return <div className="text-center text-white py-10">Loading menu...</div>;
+  if (loading || authLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-white">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-500 mb-4"></div>
+        <p className="text-xl">Loading menu items...</p>
+      </div>
+    );
   }
 
   return (
@@ -119,10 +138,7 @@ const Menu = () => {
               {item.title}
             </h3>
             <img
-              src={
-                item.image ||
-                "https://via.placeholder.com/300x200?text=No+Image"
-              }
+              src={item.image || "https://via.placeholder.com/300x200?text=No+Image"}
               alt={item.title}
               className="w-full h-44 sm:h-48 object-cover rounded-md mb-4"
             />

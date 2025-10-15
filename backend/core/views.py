@@ -6,12 +6,15 @@ import stripe
 from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.http import JsonResponse, HttpResponse
+
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import MenuItem, CartItem, Order, Review, OrderItem
 from .serializers import (
@@ -19,21 +22,25 @@ from .serializers import (
     CartItemSerializer,
     OrderSerializer,
     ReviewSerializer,
-    RegisterSerializer
+    RegisterSerializer,
+    UserSerializer
 )
 
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-#  Menu Item ViewSet
+
+# Menu Item ViewSet
 class MenuItemViewSet(viewsets.ModelViewSet):
     queryset = MenuItem.objects.all().order_by('-created_at')
     serializer_class = MenuItemSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'description']
+    permission_classes = [AllowAny]
 
-#  Cart Item ViewSet
+
+# Cart Item ViewSet
 class CartItemViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = CartItemSerializer
@@ -44,7 +51,8 @@ class CartItemViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-# ✅ Order ViewSet
+
+# Order ViewSet
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = OrderSerializer
@@ -52,7 +60,8 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
 
-# ✅ Review ViewSet
+
+# Review ViewSet
 class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewSerializer
@@ -63,7 +72,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-# ✅ Register View
+
+# Register View
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def RegisterView(request):
@@ -73,7 +83,73 @@ def RegisterView(request):
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ Stripe Checkout for Single Item
+
+# Login View
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = JsonResponse({
+            "message": "Login successful",
+            "user": {"id": user.id, "username": user.username, "email": user.email},
+            "access_token": access_token,
+            "refresh_token": refresh_token
+        })
+        return response
+    return Response({"error": "Invalid credentials"}, status=401)
+
+
+# Logout View
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    response = JsonResponse({"message": "Logged out"})
+    return response
+
+
+# Current User (/me/)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me_view(request):
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
+
+
+# Merge Guest Cart
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def merge_cart_view(request):
+    user = request.user
+    items = request.data.get("items", [])
+
+    for item in items:
+        menu_item_id = item.get("menu_item_id")
+        quantity = item.get("quantity", 1)
+        try:
+            menu_item = MenuItem.objects.get(id=menu_item_id)
+            cart_item, created = CartItem.objects.get_or_create(
+                user=user,
+                menu_item=menu_item,
+                defaults={"quantity": quantity}
+            )
+            if not created:
+                cart_item.quantity += quantity
+                cart_item.save()
+        except MenuItem.DoesNotExist:
+            continue
+
+    return Response({"message": "Cart merged successfully"})
+
+
+# Stripe Checkout Single Item
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_checkout_session(request):
@@ -113,7 +189,8 @@ def create_checkout_session(request):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ Stripe Checkout for Multiple Cart Items
+
+# Stripe Checkout Multiple Cart Items
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_multi_checkout_session(request):
@@ -144,29 +221,32 @@ def create_multi_checkout_session(request):
             "price": float(menu_item.price)
         })
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=line_items,
-        mode='payment',
-        success_url=f"{FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{FRONTEND_URL}/cancel",
-        metadata={
-            'user_id': str(user.id),
-            'cart': json.dumps(cart_metadata)
-        }
-    )
-    return Response({"sessionId": session.id})
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=line_items,
+            mode='payment',
+            success_url=f"{FRONTEND_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_URL}/cancel",
+            metadata={
+                'user_id': str(user.id),
+                'cart': json.dumps(cart_metadata)
+            }
+        )
+        return Response({"sessionId": session.id})
+    except Exception as e:
+        logger.error(f"Stripe multi-checkout error: {e}")
+        return Response({"error": str(e)}, status=500)
 
-# ✅ Stripe Webhook to Create Order
+
+# Stripe Webhook
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE', '')
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
     except ValueError as e:
         logger.error(f"Invalid payload: {e}")
         return HttpResponse(status=400)
