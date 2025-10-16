@@ -1,13 +1,23 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
+import { useContext } from "react";
 import { toast } from "react-toastify";
 
 const MenuDishes = ({ dishes = [], handleBuyNow = () => {}, loading = false }) => {
   const { addToCart } = useCart(); // use CartContext
+  const { user } = useContext(AuthContext); // Check if user is logged in
+  const navigate = useNavigate();
 
   const handleAddToCart = async (id) => {
     try {
+      if (!user) {
+        toast.info("Please login to add items to cart");
+        navigate("/login"); // Redirect to login/signup page
+        return;
+      }
       await addToCart(id, 1); // Add 1 quantity
+      toast.success("Item added to cart!");
     } catch (err) {
       console.error("Add to cart error:", err);
       toast.error("Failed to add item to cart");

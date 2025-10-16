@@ -29,10 +29,7 @@ function Navbar() {
       setGuestCartCount(totalQuantity);
     };
 
-    // Initial load
     updateGuestCartCount();
-
-    // Listen for storage events to update count across tabs
     window.addEventListener("storage", updateGuestCartCount);
 
     return () => {
@@ -60,7 +57,9 @@ function Navbar() {
             alt="CloudBite Logo"
             className="w-10 h-10 rounded-full object-cover"
           />
-          <h1 className="text-2xl font-bold">CloudBites</h1>
+          <h1 className="text-2xl font-bold">
+            Cloud<span className="text-red-900">Bites</span>
+          </h1>
         </div>
 
         {/* Desktop Search Bar */}
@@ -100,7 +99,6 @@ function Navbar() {
           <li className="relative">
             <Link to="/cart" className="hover:text-red-400 flex items-center">
               <FiShoppingCart className="w-6 h-6" />
-
               {totalCartCount > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-500 rounded-full">
                   {totalCartCount}
@@ -114,12 +112,22 @@ function Navbar() {
             </Link>
           </li>
           <li>
-            <button
-              onClick={logout}
-              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
-            >
-              Logout
-            </button>
+            {/* Conditional Auth Button */}
+            {user ? (
+              <button
+                onClick={logout}
+                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
+              >
+                Sign In
+              </Link>
+            )}
           </li>
         </ul>
 
@@ -128,11 +136,7 @@ function Navbar() {
           className="md:hidden focus:outline-none"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? (
-            <XIcon className="h-6 w-6" />
-          ) : (
-            <MenuIcon className="h-6 w-6" />
-          )}
+          {isOpen ? <XIcon className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
         </button>
       </div>
 
@@ -209,15 +213,26 @@ function Navbar() {
               </Link>
             </li>
             <li>
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  logout();
-                }}
-                className="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
-              >
-                Logout
-              </button>
+              {/* Conditional Auth Button */}
+              {user ? (
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    logout();
+                  }}
+                  className="w-full bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
+                >
+                  Logout
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-center bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg"
+                >
+                  Sign In
+                </Link>
+              )}
             </li>
           </ul>
         </div>

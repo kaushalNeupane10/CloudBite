@@ -89,8 +89,8 @@ export default function Home() {
   // Show loading if user data is still being fetched
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-white">
-        Loading...
+      <div className="flex flex-col items-center justify-center min-h-64 text-white">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-red-500 mb-4"></div>
       </div>
     );
   }
