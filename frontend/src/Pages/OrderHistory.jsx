@@ -1,25 +1,52 @@
 import { useEffect, useState } from "react";
 import axiosInstance from "../Components/axiosInstance";
+import { Navigate } from "react-router-dom";
+import { isAuthenticated } from "../utils/auth";
+import { toast } from "react-toastify";
 
 export default function OrderHistoryPage() {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Redirect unauthenticated users with toast
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      toast.info("Please login to view your order history");
+    }
+  }, []);
 
   useEffect(() => {
+    if (!isAuthenticated()) return;
+
+    const fetchOrders = async () => {
+      setLoading(true);
+      try {
+        const res = await axiosInstance.get("/orders/");
+        const sortedOrders = res.data.sort(
+          (a, b) => new Date(b.ordered_at) - new Date(a.ordered_at)
+        );
+        setOrders(sortedOrders);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchOrders();
   }, []);
 
-  const fetchOrders = async () => {
-    try {
-      const res = await axiosInstance.get("/orders/");
-      // Sort newest to oldest based on ordered_at
-      const sortedOrders = res.data.sort(
-        (a, b) => new Date(b.ordered_at) - new Date(a.ordered_at)
-      );
-      setOrders(sortedOrders);
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-    }
-  };
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-gray-800">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500 mb-4"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">

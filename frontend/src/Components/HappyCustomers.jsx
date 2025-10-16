@@ -1,25 +1,24 @@
-import React from "react";
-
+import placeholder from "../assests/placeholderimg/Portrait_Placeholder.png"
 const HappyCustomers = () => {
   const testimonials = [
     {
       id: 1,
       name: "Aarav Sharma",
-      image: "https://randomuser.me/api/portraits/men/32.jpg",
+      image: placeholder,
       message:
         "CloudBite made my weekends so much easier! The food always arrives hot, fresh, and absolutely delicious. It’s like having a restaurant right in my kitchen.",
     },
     {
       id: 2,
       name: "Sneha Gurung",
-      image: "https://randomuser.me/api/portraits/women/65.jpg",
+      image: placeholder,
       message:
         "I love the variety CloudBite offers. Every meal tastes premium, and the delivery is super fast. Definitely my go-to for a quick gourmet experience.",
     },
     {
       id: 3,
-      name: "Rohan Thapa",
-      image: "https://randomuser.me/api/portraits/men/76.jpg",
+      name: "kaushal Neupane",
+      image: placeholder,
       message:
         "CloudBite is simply awesome! The meals are healthy, perfectly cooked, and full of flavor. The customer support is also top-notch. Highly recommended!",
     },

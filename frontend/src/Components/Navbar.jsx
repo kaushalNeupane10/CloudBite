@@ -5,7 +5,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { logout } from "../utils/auth";
 import { Link, useNavigate } from "react-router-dom";
-import myLogo from "../assests/logo.png";
+import myLogo from "../assests/logo/logo.png";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { FiShoppingCart } from "react-icons/fi";

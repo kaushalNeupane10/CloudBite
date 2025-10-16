@@ -4,6 +4,9 @@ import { useCart } from "../context/CartContext.jsx";
 import axiosInstance from "../Components/axiosInstance";
 import { toast } from "react-toastify";
 import { FiShoppingCart } from "react-icons/fi";
+import { Navigate } from "react-router-dom";
+import { isAuthenticated } from "../utils/auth";
+
 export default function CartPage() {
   const { user } = useContext(AuthContext);
   const {
@@ -15,8 +18,17 @@ export default function CartPage() {
   } = useCart();
   const [loading, setLoading] = useState(true);
 
-  // Fetch cart on load
+  // Redirect unauthenticated users with toast
   useEffect(() => {
+    if (!isAuthenticated()) {
+      toast.info("Please login to view your cart");
+    }
+  }, []);
+
+  // Fetch cart only for authenticated users
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+
     const loadCart = async () => {
       setLoading(true);
       try {
@@ -29,6 +41,10 @@ export default function CartPage() {
     };
     loadCart();
   }, [user]);
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleRemove = async (menuItemId) => {
     await removeFromCart(menuItemId);
@@ -101,14 +117,10 @@ export default function CartPage() {
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1 text-center sm:text-left">
-                  <h2 className="text-lg font-semibold">
-                    {item.menu_item.title}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{item.menu_item.title}</h2>
                   <div className="flex justify-center sm:justify-start items-center mt-1 gap-2">
                     <button
-                      onClick={() =>
-                        handleQuantityChange(item.menu_item.id, -1)
-                      }
+                      onClick={() => handleQuantityChange(item.menu_item.id, -1)}
                       className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded"
                     >
                       -
