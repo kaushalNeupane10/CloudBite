@@ -5,7 +5,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { logout } from "../utils/auth";
 import { Link, useNavigate } from "react-router-dom";
-import myLogo from "../image/logo.png";
+import myLogo from "../assests/logo.png";
 import { AuthContext } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { FiShoppingCart } from "react-icons/fi";
@@ -60,7 +60,7 @@ function Navbar() {
             alt="CloudBite Logo"
             className="w-10 h-10 rounded-full object-cover"
           />
-          <h1 className="text-2xl font-bold">CloudBite</h1>
+          <h1 className="text-2xl font-bold">CloudBites</h1>
         </div>
 
         {/* Desktop Search Bar */}
